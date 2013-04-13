@@ -1,6 +1,6 @@
 #!/bin/bash
 
-K=10
+K=20
 ORIG_DATA=Data/sat6c.tra.svmlight
 NDATA=$(cat ${ORIG_DATA} | wc -l)
 NXF=$(echo "($NDATA + $K - 1) / $K" | bc)
