@@ -7,10 +7,10 @@ PROG=${0##*/}
 SVM_LIGHT_LEARN=svm_light/svm_learn
 SVM_LIGHT_CLASS=svm_light/svm_classify
 
-TRAIN=( `ls Data/sat6c.tra.norm.svmlight.train+([0-9])` )
-VALID=( `ls Data/sat6c.tra.norm.svmlight.valid+([0-9])` )
+TRAIN=( `ls Data/sat6c.tra.svmlight.norm.train+([0-9])` )
+VALID=( `ls Data/sat6c.tra.svmlight.norm.valid+([0-9])` )
 MAXITER=1000000
-C=
+C=1
 T=0
 D=1
 G=1

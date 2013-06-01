@@ -4,8 +4,8 @@ shopt -s extglob
 export LC_NUMERIC=C
 
 PROG=${0##*/}
-SVM_LIGHT_LEARN=svm_multiclass/svm_multiclass_learn
-SVM_LIGHT_CLASS=svm_multiclass/svm_multiclass_classify
+SVM_LIGHT_LEARN=svm_light/svm_learn
+SVM_LIGHT_CLASS=svm_light/svm_classify
 
 TRAIN=( `ls Data/sat6c.tra.svmlight.norm.train+([0-9])` )
 VALID=( `ls Data/sat6c.tra.svmlight.norm.valid+([0-9])` )
@@ -26,7 +26,8 @@ Options:
     -tr <train> ...  training files
     -va <valid> ...  validation files
     -o <out-dir>     output directory
-    -c <c>           svm_learn regularization term. Default: $C
+    -m <method>      classification method
+    -c <c>           svm_learn regularization term
     -t <kernel>      svm_learn kernel type. Default: $T
     -d <d>           svm_learn d parameter. Default: $D
     -g <gamma>       svm_learn g parameter. Default: $G
@@ -59,6 +60,9 @@ while [ "${1:0:1}" = "-" ]; do
                 VALID=( ${VALID[@]} "$1" ); shift 1;
             done
             ;;
+        "-m")
+            METHOD=$2; shift 2;
+            ;;
 	"-#")
 	    MAXITER="$2"; shift 2;
 	    ;;
@@ -85,8 +89,26 @@ while [ "${1:0:1}" = "-" ]; do
     esac
 done
 
-info="svmMULTI-maxit${MAXITER}-t$T-c${C}"
-svm_opt="-# ${MAXITER} -t $T -c $C"
+case "$METHOD" in
+    DAG)
+        CLASSIFY="./Classify-One-vs-One-DAG.sh -c 6"
+        ;;
+    VOTE)
+        CLASSIFY="./Classify-One-vs-One-Voting.sh -c 6"
+        ;;
+    *)
+        echo "Unknown method: $METHOD. Use DAG or VOTE.";
+        exit 1
+esac
+
+info="svmONE.VS.ONE-maxit${MAXITER}-t$T"
+svm_opt="-# ${MAXITER} -t $T"
+if [ -z $C ]; then
+    info=${info}-cDEFAULT;
+else
+    info=${info}-c${C};
+    svm_opt="${svm_opt} -c $C"
+fi
 case "$T" in
     0)
 	;;
@@ -118,25 +140,47 @@ serr2=0.0
 NDATA=${#TRAIN[@]};
 for i in `seq 0 $[$NDATA - 1]`; do
     tr=${TRAIN[$i]}; va=${VALID[$i]};
-    mdl=$ODIR/Model-${info}_`basename $tr`.mdl
-    out=$ODIR/Output-${info}_`basename $va`.out
-    if [ ! -f $mdl ]; then
-	echo "${SVM_LIGHT_LEARN} ${svm_opt} $tr $mdl" &> ${mdl/.mdl/.log}
-	${SVM_LIGHT_LEARN} ${svm_opt} $tr $mdl &>> ${mdl/.mdl/.log}
-	[ $? -ne 0 ] && { echo "Training failed: ${mdl/.mdl/.log}"; exit 1; }
-    fi
-    echo "${SVM_LIGHT_CLASS} $va $mdl $out" &> ${out/.out/.log}
-    ${SVM_LIGHT_CLASS} $va $mdl $out &>> ${out/.out/.log}
-    [ $? -ne 0 ] && { echo "Classif. failed: ${out/.out/.log}"; exit 1; }
-    set -e
-    err=$(grep "Average loss on test set:" ${out/.out/.log} | awk '{print $NF}')
+    [ -f $va.unk ] || {
+    	awk '{ $1="0"; print $0; }' $va > $va.unk
+    }
+    [ -f $va.lbl ] || {
+	./Extract-Labels.sh $va > $va.lbl
+    }
+    for ca in `seq 1 6`; do
+	for cb in `seq $[$ca + 1] 6`; do
+	    ctr=${tr}.ca${ca}.cb${cb};
+	    [ -f $ctr ] || {
+		awk -v ca=$ca -v cb=$cb '{
+                  if ($1 == ca) { $1="+1"; print $0; }
+                  else if ($1 == cb) { $1="-1"; print $0; }
+                }' $tr > $ctr
+	    }
+	    mdl=$ODIR/Model-${info}_`basename $ctr`.mdl
+	    out=$ODIR/Output-${info}_`basename $va`.ca${ca}.cb${cb}.out
+            if [ ! -f $mdl ]; then
+	        echo "${SVM_LIGHT_LEARN} ${svm_opt} $ctr $mdl" &> ${mdl/.mdl/.log}
+	        ${SVM_LIGHT_LEARN} ${svm_opt} $ctr $mdl &>> ${mdl/.mdl/.log}
+	        [ $? -ne 0 ] && { echo "Training failed: ${mdl/.mdl/.log}"; exit 1; }
+            fi
+            if [ ! -f $out ]; then
+	        echo "${SVM_LIGHT_CLASS} -f 1 $va.unk $mdl $out" &> ${out/.out/.log}
+	        ${SVM_LIGHT_CLASS} -f 1 $va.unk $mdl $out &>> ${out/.out/.log}
+                [ $? -ne 0 ] && { echo "Classif. failed: ${out/.out/.log}"; exit 1; }
+            fi
+	done
+    done
+    # Get winner label
+    va_multi=$ODIR/Output-${info}_`basename $va`.multi
+    [ -f $va_multi ] || {
+        paste $ODIR/Output-${info}_`basename $va`.ca*.cb*.out > $va_multi
+    }
+    hyp=$ODIR/Output-${info/ONE.VS.ONE/ONE.VS.ONE.$METHOD}_`basename $va`.hyp
+    ${CLASSIFY} < $va_multi > $hyp
+    err=$(./Compute-Error-Ratio.sh $va.lbl $hyp)
     serr=$(echo "$serr + $err" | bc -l)
     serr2=$(echo "$serr2 + $err * $err" | bc -l)
-    set +e
 done
 avg_err=$(echo "$serr / $NDATA" | bc -l)
 std_err=$(echo "sqrt($serr2 / $NDATA - ${avg_err} * ${avg_err})" | bc -l)
 int_err=$(echo "1.96 * $std_err / sqrt($NDATA)" | bc -l)
-echo $info ${avg_err} ${int_err}
-
-exit 0
+echo ${info/ONE.VS.ONE/ONE.VS.ONE.$METHOD} ${avg_err} ${int_err}

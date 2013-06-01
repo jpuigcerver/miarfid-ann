@@ -5,7 +5,7 @@ shopt -s extglob
 export LC_NUMERIC=C
 
 # Default parameters
-METHOD=( "MULTI" "ONE-VS-REST" )
+METHOD=( "MULTI" "ONE-VS-REST" "ONE-VS-ONE-VOTE")
 T_PARAM=( 0 1 2 3 )
 D_PARAM=( 1 )
 G_PARAM=( 1 )
@@ -13,8 +13,8 @@ S_PARAM=( 1 )
 R_PARAM=( 1 )
 C_PARAM=( DEFAULT )
 MAXITER=1000000
-TRAIN=( `ls Data/sat6c.tra.norm.svmlight.train+([0-9])` )
-VALID=( `ls Data/sat6c.tra.norm.svmlight.valid+([0-9])` )
+TRAIN=( `ls Data/sat6c.tra.svmlight.norm.train+([0-9])` )
+VALID=( `ls Data/sat6c.tra.svmlight.norm.valid+([0-9])` )
 ODIR=
 
 function help () {
@@ -102,12 +102,18 @@ done
 # Run experiments
 for m in ${METHOD[@]}; do
     case "$m" in
-	"ONE-VS-REST")
-	    RUN_METHOD="./Run-One-vs-Rest.sh"
-	    ;;
 	"MULTI")
 	    RUN_METHOD="./Run-Multiclass.sh"
 	    ;;
+	"ONE-VS-REST")
+	    RUN_METHOD="./Run-One-vs-Rest.sh"
+	    ;;
+	"ONE-VS-ONE-VOTE")
+	    RUN_METHOD="./Run-One-vs-One.sh -m VOTE"
+	    ;;
+        "ONE-VS-ONE-DAG")
+	    RUN_METHOD="./Run-One-vs-One.sh -m DAG"
+            ;;
 	*)
 	    echo "Unknown method: $m" >&2; exit 1;
     esac
