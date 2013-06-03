@@ -155,17 +155,12 @@ for i in `seq 0 $[$NDATA - 1]`; do
     hyp=$ODIR/Output-${info}_`basename $va`.hyp
     paste $ODIR/Output-${info}_`basename $va`.class*.out > ${va_multi}
     # Get winner label
-    awk '{
-       CL=1; msc=$1;
-       for (c=2; c < NF; ++c) {
-           if ($c > msc) { msc=$c; CL=c; }
-       }
-       print CL
-    }' ${va_multi} > $hyp
+    ./Classify-One-vs-Rest.sh < $va_multi > $hyp
     err=$(./Compute-Error-Ratio.sh $va.lbl $hyp)
     serr=$(echo "$serr + $err" | bc -l)
     serr2=$(echo "$serr2 + $err * $err" | bc -l)
 done
 avg_err=$(echo "$serr / $NDATA" | bc -l)
 std_err=$(echo "sqrt($serr2 / $NDATA - ${avg_err} * ${avg_err})" | bc -l)
-echo ${info} ${avg_err} ${std_err}
+int_err=$(echo "1.96 * $std_err / sqrt($NDATA)" | bc -l)
+echo ${info} ${avg_err} ${int_err}
