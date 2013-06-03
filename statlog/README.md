@@ -66,5 +66,4 @@ which can also need several GB of disk. The results will be written to the
 
 If you need any help, contact the author.
 
-Joan Puigcerver i Pérez 
-joapuipe@upv.es
+Joan Puigcerver i Pérez (joapuipe@upv.es)
