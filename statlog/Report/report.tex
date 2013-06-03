@@ -20,9 +20,9 @@
 \maketitle
 
 \section{Introduction}
-Support Vector Machines (SVMs)\cite{cortes1995support} are well-studied models for data classification and regression. These models were originally designed for solving binary classification problems and, traditionally, classification problems with more than two classes are reduced to several binary classification problems. In this work, different strategies for multi-class classification using SVMs are explored, including the mentioned reduction to multiple binary classifiers and the multi-class formulation of SVMs to solve the multi-class problem solving a single optimization.\\
+Support Vector Machines (SVMs)\cite{cortes1995support} are well-studied models for data classification and regression. These models were originally designed for solving binary classification problems and, traditionally, classification problems with more than two classes are reduced to several binary classification problems. In this work, different strategies for multi-class classification using SVMs are explored, including the mentioned reduction to multiple binary classifiers and the multi-class formulation of SVMs to solve the multi-class problem solving a single optimization problem.\\
 
-All the scripts used to conduct the experiments to compare the different strategies described in this work are publicly available on the Internet\footnote{\url{https://github.com/jpuigcerver/miarfid-ann/tree/master/statlog}}, so that others can reproduce this work independently.
+All the materials used to conduct the experiments to compare the different strategies described in this work are publicly available on the Internet\footnote{\url{https://github.com/jpuigcerver/miarfid-ann/tree/master/statlog}}, so that others can reproduce this work independently.
 
 \section{Multi-class SVM strategies}
 Several strategies have been proposed to address the multi-class classification problem using SVMs. In this section we introduce some of those strategies that have been compared in this work.\\
@@ -32,7 +32,8 @@ The bellow strategies are described under the assumption that a training set $A 
 \subsection{\emph{One-vs-all} binary classification}
 A multi-class problem of $M$ classes can be reduced to several binary classification problems. The \emph{one-vs-all} (sometimes also known as \emph{one-vs-the-rest}) strategy uses $M$ different classifiers to solve the multi-class problem. Each classifier can be described by a discriminant function $g_m : \mathbb{R}^D \rightarrow \mathbb{R}$, $1 \leq m \leq M$.\\
 
-In order to train the $M$ classifiers, $M$ training sets $A_m$ ($1 \leq m \leq M$) are created from the original training set $A$. Each training set $A_m$ contains all the samples from $A$, but those samples that were originally labelled with class $m$ are relabelled as positive samples (class $+1$) and the rest of samples are relabelled as negative samples (class $-1$). Then, each discriminant function $g_m$ is trained by optimizing the original loss function defined for SVMs using the training set $A_m$. The idea behind this procedure is that each of these $g_m$ classifiers will be able to distinguish samples of class $m$ from the rest of classes. The resulting discriminant function is defined by the set of support vectors $\vec{x}_i \in \mathcal{SV}^{(m)}$ with the associated set of Lagrange multipliers $\lambda_i^{(m)} \in \Lambda^{(m)}$ and the bias term $\omega^{(m)}$ found in the optimization problem.
+In order to train the $M$ classifiers, $M$ training sets $A_m$ ($1 \leq m \leq M$) are created from the original training set $A$. Each training set $A_m$ contains all the samples from $A$, but those samples that were originally labelled with class $m$ are relabelled as positive samples (class $+1$) and the rest of samples are relabelled as negative samples (class $-1$). Then, each discriminant function $g_m$ is trained by optimizing the original loss function defined for SVMs using the training set $A_m$. The idea behind this procedure is that each of these $g_m$ classifiers will be able to distinguish samples of class $m$ from the rest of classes. The resulting discriminant function is defined by the set of support vectors $\vec{x}_i \in \mathcal{SV}^{(m)}$ with the associated set of Lagrange multipliers $\lambda_i^{(m)} \in \Lambda^{(m)}$ and the bias term $\omega^{(m)}$ found in the optimization problem.\\
+
 \begin{equation}
 g_m(\vec{x}) = \sum_{\vec{x}_i \in \mathcal{SV}^{(m)}} \lambda_i^{(m)} t_i^{(m)} \mathcal{K}(\vec{x}_i, \vec{x}) + \omega^{(m)}
 \end{equation}
@@ -49,11 +50,15 @@ The benefit of this strategy is that only requires to train $M$ classifiers and 
 An alternative strategy to the \emph{one-vs-all} strategy is to build $\frac{M (M-1)}{2}$ binary classifiers, each of them classifying between only two classes of the original $M$-class problem.
 Each of these binary classifiers is trained using the training set $A_{m,m'}$, $1 \leq m < m' \leq M$, which has been built from the original training set $A$. The training set $A_{m,m'}$ contains only the samples from $A$ labelled as $m$ or $m'$. Samples from class $m$ in the original training set $A$, are relabelled as positive samples in the set $A_{m,m'}$, and samples from class $m'$ in the original training set, are relabelled as negative samples.\\
 
-Each binary classifier is represented by a discriminant function $g_{m,m'} : \mathbb{R}^D \rightarrow \mathbb{R}$, $1 \leq m < m' \leq M$ which is trained using the standard procedure for SVMs training, using the training set $A_{m,m'}$.\\
+Each binary classifier is represented by a discriminant function $g_{m,m'} : \mathbb{R}^D \rightarrow \mathbb{R}$, $1 \leq m < m' \leq M$ which is trained using the standard procedure for SVMs training, using the training set $A_{m,m'}$. Each of these discriminant functions has the form:\\
+
+\begin{equation}
+g_{m,m'}(\vec{x}) = \sum_{\vec{x}_i \in \mathcal{SV}^{(m,m')}} \lambda_i^{(m,m')} t_i^{(m,m')} \mathcal{K}(\vec{x}_i, \vec{x}) + \omega^{(m,m')}
+\end{equation}
 
 There are different strategies to solve the original multi-class problem from these $\frac{M (M-1)}{2}$ binary classifiers which are described bellow.
 
-\subsubsection{Voting strategy}
+\subsubsection{Voting strategy}\label{sec:voting}
 An unknown sample $\vec{x}$ is classified to class $\hat{m}$ using algorithm \ref{alg:voting}.\\
 
 \begin{algorithm}[h]
@@ -76,7 +81,7 @@ An unknown sample $\vec{x}$ is classified to class $\hat{m}$ using algorithm \re
 
 This strategy needs $O(M^2)$ classification steps to complete the original $M$-class classification problem.
 
-\subsubsection{DAG strategy}
+\subsubsection{DAG strategy}\label{sec:dag}
 Another popular \emph{one-vs-one} strategy consists in building a directed acyclic graph (DAG)\cite{platt2000large}. In each node of the DAG, a classification using one of the binary classifiers is performed and the ``losing'' class will not be considered again. So, at each step of the algorithm, one of the $M$ classes is discarded. Algorithm \ref{alg:dag} shows the procedure to classify an unknown sample $\vec{x}$ using the DAG strategy.\\
 
 \begin{algorithm}[h]
@@ -104,14 +109,14 @@ It is also possible to solve the multi-class classification problem solving a si
 
 \begin{eqnarray}
 L = \frac{1}{2} \sum_{m=1}^{M} \vec{\omega}_m^T \vec{\omega}_m + \frac{C}{n} \sum_{i=1}^n \xi_i\\
-\vec{\omega}_{t_i} \cdot \vec{x}_i \geq \vec{\omega}_m \vec{x}_i + \omega_{m,0} + 1 - \xi_i, \forall 1 \leq i \leq n, 1 \leq m \leq M \\
+\vec{\omega}_{t_i} \cdot \vec{x}_i + \omega_{t_i,0} \geq \vec{\omega}_m \vec{x}_i + \omega_{m,0} + 1 - \xi_i, \forall 1 \leq i \leq n, 1 \leq m \leq M \\
 \xi_i \geq 0, \forall 1 \leq i \leq n
 \end{eqnarray}
 
-The above minimization problem can be simplified using Lagrange multipliers as it is done to solve the original SVM optimization problem.
+The above minimization problem can be simplified using Lagrange multipliers as it is done to solve the original SVM optimization problem. This gives a solution to the multi-class classification problem without the need of reducing it to several binary classification problems, and thus, only one model needs to be trained and evaluated for data classification.
 
 \section{Experiments}
-In order to compare the different multi-class strategies introduced in the previous section, several experiments were conducted using the UCI Landsat dataset\cite{Bache+Lichman:2013}. This corpus contains 2000 training samples and 1000 test samples to be classified among 6 different classes representing different terrain types. Each sample represents an image captured from a Landsat satellite and is a 36-dimensional vector. Each dimension is originally in the range $[0, 255]$, but they have been normalized to mean equal to 0 and standard deviation equal to 1, using the mean and standard deviation extracted from the training data. Some experiments were conducted using the original features space and also using the scaled features to the range $[-1,1]$, which is an other strategy usually recommended. But the normalization procedure described before generally provided better and more robust (less variance) results on the validation set. The differences in the error rate among the different features were not statistically significant (at 95\% confidence), but only the results with the normalized features are reported, since only this features were explored in a broad set of hyperparameters.\\
+In order to compare the different multi-class strategies introduced in the previous section, several experiments were conducted using a version of the UCI Landsat dataset\cite{Bache+Lichman:2013}. The used version contains 2000 training samples and 1000 test samples to be classified among 6 different classes representing different terrain types. Each sample represents an image captured from a Landsat satellite and is a 36-dimensional vector. Each dimension is originally in the range $[0, 255]$, but they have been normalized to mean equal to 0 and standard deviation equal to 1, using the mean and standard deviation extracted from the training data. Some experiments were conducted using the original features space and also using the scaled features to the range $[-1,1]$, which is an other strategy usually recommended. But the normalization procedure described before generally provided better and more robust (less variance) results on the validation set. The differences in the error rate among the different features were not statistically significant (at 95\% confidence). Finally, only the results with the normalized features are reported here, since only these features were used to explore a broad range of the hyperparameters values.\\
 
 All the experiments have been done using the SVMlight software\cite{joachims1999making} and its multi-class version, which implements the solution described in section \ref{sec:multiclass}. Two kernels were tried: the linear and the Gaussian-RBF kernels.\\
 
@@ -120,7 +125,7 @@ All the experiments have been done using the SVMlight software\cite{joachims1999
 \mathcal{K}_{RBF}(\vec{x}_1, \vec{x}_2) = - \gamma ||\vec{x}_1 - \vec{x}_2||_2^2
 \end{eqnarray}
 
-In order to choose the hyperparameters for the different classifiers, a 5-fold cross-validation has been conducted. Grid search was used in each of the validation sets. In the case of the linear kernel, the values for the regularisation parameter $C$ were $C \in \{2^{-10}, 2^{-9}, \ldots, 2^{19}, 2^{20} \}$. In the case of the Gaussian-RBF kernel, the explored values for the parameter $C$ were $C \in \{2^{-10}, 2^{-9}, \ldots, 2^{12}, 2^{13}\}$, while the kernel parameter $\gamma$ explored values were $\gamma \in \{2^{-15}, 2^{-14}, \ldots, 2^2, 2^3\}$.
+In order to choose the hyperparameters for the different classifiers, a 5-fold cross-validation has been conducted. Grid search was used in each of the validation sets. In the case of the linear kernel, the values for the regularisation parameter $C$ were $C \in \{2^{-10}, 2^{-9}, \ldots, 2^{19}, 2^{20} \}$. In the case of the Gaussian-RBF kernel, the explored values for the parameter $C$ were $C \in \{2^{-10}, 2^{-9}, \ldots, 2^{12}, 2^{13}\}$, while the kernel parameter $\gamma$ explored values were $\gamma \in \{2^{-15}, 2^{-14}, \ldots, 2^2, 2^3\}$. The main results of this grid search are reported in table \ref{tab:valid_results}. Once the hyperparameters were chosen for each pair strategy-kernel using the validation set, a final classifier was trained for each pair using all the available training data and tested against the test set. Results are reported in table \ref{tab:test_results}.
 
 \begin{table}[h]
 \centering
@@ -128,17 +133,36 @@ In order to choose the hyperparameters for the different classifiers, a 5-fold c
 \hline
 Strategy & $\mathcal{K}_{Linear}$ & $\mathcal{K}_{RBF}$ \\
 \hline
-One-vs-all & & $9.95 \pm 1.09 ~ (C = 2^2, \gamma=2^{-2})$\\
-Voting & $12.45 \pm 1.72 ~ (C = 2^{-4})$ & $9.85 \pm 1.63 ~ (C = 2^3, \gamma = 2^{-2})$  \\
-DAG & $12.25 \pm 1.90 ~ (C = 2^{-4})$ & $9.75 \pm 1.56 ~ (C = 2^3, \gamma = 2^{-2})$ \\
-Multi-class & $14.80 \pm 1.24 ~ (C = 2^{19})$ & \\
+One-vs-all & $17.50 \pm 1.28 ~ (C = 2^{-5})$ & $9.95 \pm 1.09 ~ (C = 2^2, \gamma=2^{-3})$\\
+Voting & $12.45 \pm 1.72 ~ (C = 2^{-4})$ & $9.85 \pm 1.63 ~ (C = 2^3, \gamma = 2^{-3})$  \\
+DAG & $12.25 \pm 1.90 ~ (C = 2^{-4})$ & $9.75 \pm 1.56 ~ (C = 2^3, \gamma = 2^{-3})$ \\
+Multi-class & $14.80 \pm 1.24 ~ (C = 2^{19})$ & $11.10 \pm 0.99 ~ (C=2^{-10}, \gamma=2^1)$\\
 \hline
 \end{tabular}
 \caption{Best error rates on the validation set achieved by different classification strategies and kernels. The confidence intervals at given at 95\%.}
-\label{tab:}
+\label{tab:valid_results}
 \end{table}
 
-\section{Discussion}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+Strategy & $\mathcal{K}_{Linear}$ & $\mathcal{K}_{RBF}$ \\
+\hline
+One-vs-all & $19.10$ & $10.20$\\
+Voting & $13.50$ & $9.60$  \\
+DAG & $13.30$ & $9.70$ \\
+Multi-class & $15.70$ & $10.60$ \\
+\hline
+\end{tabular}
+\caption{Best error rates on the test set achieved by different classification strategies and kernels. The hyperparameters used are the ones specified in table \ref{tab:valid_results}.}
+\label{tab:test_results}
+\end{table}
+
+\section{Conclusions}
+Several strategies for multi-class classification using SVMs have been explored in this work. Using a linear kernel, the confidence intervals at 95\% on the validation set overlap for \emph{one-vs-one} strategies and the multi-class formulation of SVMs. However, the \emph{one-vs-all} strategy is clearly worse than the other methods. There are no statistically significant differences among any of the reported methods when using a Gaussian-RBF kernel. This analysis coincides with other works done before\cite{duan2005best,hsu2002comparison} which report no significant differences among some of the described methods here. These works mention other multi-class strategies which do provide significant improvements in the classification error rate, especially a method based on a probabilistic interpretation of the SVMs scores\cite{platt1999probabilistic} which was found to be better than the other stratgies on \cite{duan2005best}.\\
+
+Regarding the experiments done in this work, using a linear kernel the best results on test set were obtained using the \emph{one-vs-one} strategy based on a direct acyclic graph (section \ref{sec:dag}), which reported an error rate equal to \textbf{13.30\%}. The best result using a Gaussian-RBF kernel was achieved using the \emph{one-vs-one} strategy based on voting (section \ref{sec:voting}), with an error rate equal to \textbf{9.60\%}.
 
 \bibliographystyle{abbrv}
 \bibliography{report}
