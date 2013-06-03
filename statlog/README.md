@@ -1,7 +1,7 @@
 A comparison of Multi-class SVM strategies
 ==========================================
 
-This work aims to compare different Multi-class strategies for Support 
+This work aims to compare different Multi-class strategies for Support
 Vector Machines (SVMs). Four different strategies have been explored:
 
 * Multi-class formulation of SVMs
@@ -26,14 +26,14 @@ perform the experiments.
 3. Convert the training and test data to SVMlight format using the
 `Prepare-SVMlight-Format.sh` script.
 
-4. Normalize first the training data using the `Normalize-Data.py` 
-script. Then, use the same script but now using the -s option and the 
+4. Normalize first the training data using the `Normalize-Data.py`
+script. Then, use the same script but now using the -s option and the
 generated `Data/sat6.tra.svmlight.norm.stats` file to normalize the
 test data using the mean and standard deviation in the training data.
 You can also try to scale the features instead of normalizing them by
 using the script `Scale-Data.py`.
 
-5. Create the 5-fold cross-validation partitions from the original training 
+5. Create the 5-fold cross-validation partitions from the original training
 data using the `Prepare-KFold.py` script. Use the default random seed (0) to
 generate the 5-fold CV files.
 
@@ -57,12 +57,11 @@ using the `Run-Experiments.sh` script:
 0.001953125 0.00390625 0.0078125 0.015625 0.03125 0.0625 0.125 0.5 \
 1 2 4 8 > Results-RBF.txt
 ```
-This can take a long time to complete, especially due to the use of 
-the multiclass version of SVMlight which is not optimized for kernels. 
-These experiments will also create a bunch of files in the `Exper` directory 
-which can also need several GB of disk. The results will be written to the 
+This can take a long time to complete, especially due to the use of
+the multiclass version of SVMlight which is not optimized for kernels.
+These experiments will also create a bunch of files in the `Exper` directory
+which can also need several GB of disk. The results will be written to the
 `Results-Linear.txt` and `Results-RBF.txt` files.
-
 
 If you need any help, contact the author.
 
